@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TIC·TAC·TOE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Variables ─────────────────────────────────────────── */
+    :root {
+      --bg:        #060a0f;
+      --grid-line: #1a2a3a;
+      --glow-x:    #00f5ff;
+      --glow-o:    #ff2d78;
+      --accent:    #ffe066;
+      --text:      #c8d8e8;
+      --text-dim:  #3a5a7a;
+      --shadow-x:  0 0 8px #00f5ff, 0 0 24px #00f5ff88, 0 0 60px #00f5ff33;
+      --shadow-o:  0 0 8px #ff2d78, 0 0 24px #ff2d7888, 0 0 60px #ff2d7833;
+      --shadow-win:0 0 16px #ffe066, 0 0 48px #ffe06688, 0 0 120px #ffe06644;
+    }
+
+    /* ─── Reset & Base ──────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Share Tech Mono', monospace;
+      overflow: hidden;
+    }
+
+    /* ─── Scanline overlay ──────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,245,255,0.015) 2px,
+        rgba(0,245,255,0.015) 4px
+      );
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    /* ─── Animated grid background ─────────────────────────── */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: -50%;
+      background-image:
+        linear-gradient(rgba(0,245,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,245,255,0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      animation: gridDrift 20s linear infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    @keyframes gridDrift {
+      0%   { transform: translate(0, 0); }
+      100% { transform: translate(48px, 48px); }
+    }
+
+    /* ─── Layout ────────────────────────────────────────────── */
+    .app {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100dvh;
+      gap: 2.5rem;
+      padding: 1.5rem;
+    }
+
+    /* ─── Header ────────────────────────────────────────────── */
+    .header {
+      text-align: center;
+      animation: fadeDown 0.6s ease both;
+    }
+
+    .title {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: clamp(1.8rem, 5vw, 3rem);
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--glow-x);
+      text-shadow: var(--shadow-x);
+      line-height: 1;
+    }
+
+    .title span {
+      color: var(--glow-o);
+      text-shadow: var(--shadow-o);
+    }
+
+    .subtitle {
+      font-size: 0.65rem;
+      letter-spacing: 0.5em;
+      color: var(--text-dim);
+      margin-top: 0.5rem;
+      text-transform: uppercase;
+    }
+
+    /* ─── Score bar ─────────────────────────────────────────── */
+    .scoreboard {
+      display: flex;
+      gap: 2.5rem;
+      align-items: center;
+      animation: fadeDown 0.6s 0.1s ease both;
+    }
+
+    .score-block {
+      text-align: center;
+      position: relative;
+    }
+
+    .score-block .label {
+      font-size: 0.55rem;
+      letter-spacing: 0.4em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 0.2rem;
+    }
+
+    .score-block .value {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      font-size: 2rem;
+      line-height: 1;
+      transition: transform 0.15s ease;
+    }
+
+    .score-block.x .value { color: var(--glow-x); text-shadow: var(--shadow-x); }
+    .score-block.o .value { color: var(--glow-o); text-shadow: var(--shadow-o); }
+    .score-block.draws .value { color: var(--accent); }
+
+    .score-block.bump .value {
+      animation: bump 0.3s ease;
+    }
+
+    @keyframes bump {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.5); }
+      100% { transform: scale(1); }
+    }
+
+    .score-divider {
+      width: 1px;
+      height: 2.5rem;
+      background: linear-gradient(to bottom, transparent, var(--text-dim), transparent);
+    }
+
+    /* ─── Status display ────────────────────────────────────── */
+    .status-wrap {
+      height: 2.2rem;
+      display: flex;
+      align-items: center;
+      animation: fadeDown 0.6s 0.15s ease both;
+    }
+
+    .status {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      transition: opacity 0.2s ease;
+    }
+
+    .status.x    { color: var(--glow-x); text-shadow: var(--shadow-x); }
+    .status.o    { color: var(--glow-o); text-shadow: var(--shadow-o); }
+    .status.win  { color: var(--accent); text-shadow: var(--shadow-win); animation: pulse 1s ease infinite; }
+    .status.draw { color: var(--text-dim); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.55; }
+    }
+
+    /* ─── Board ─────────────────────────────────────────────── */
+    .board-wrap {
+      position: relative;
+      animation: fadeUp 0.7s 0.2s ease both;
+    }
+
+    /* Corner decorations */
+    .board-wrap::before,
+    .board-wrap::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-color: var(--glow-x);
+      border-style: solid;
+      opacity: 0.6;
+    }
+    .board-wrap::before {
+      top: -8px; left: -8px;
+      border-width: 2px 0 0 2px;
+    }
+    .board-wrap::after {
+      bottom: -8px; right: -8px;
+      border-width: 0 2px 2px 0;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      position: relative;
+    }
+
+    /* ─── Cells ─────────────────────────────────────────────── */
+    .cell {
+      --size: clamp(90px, 22vw, 130px);
+      width:  var(--size);
+      height: var(--size);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      border: 1px solid var(--grid-line);
+      background: transparent;
+      transition: background 0.2s ease;
+      overflow: hidden;
+    }
+
+    /* Outer border removal to create inner-only grid */
+    .cell:nth-child(1), .cell:nth-child(2), .cell:nth-child(3) { border-top: none; }
+    .cell:nth-child(7), .cell:nth-child(8), .cell:nth-child(9) { border-bottom: none; }
+    .cell:nth-child(1), .cell:nth-child(4), .cell:nth-child(7) { border-left: none; }
+    .cell:nth-child(3), .cell:nth-child(6), .cell:nth-child(9) { border-right: none; }
+
+    .cell:not(.taken):hover {
+      background: rgba(0,245,255,0.04);
+      cursor: pointer;
+    }
+
+    .cell.taken { cursor: default; }
+    .cell.game-over:not(.taken) { cursor: not-allowed; }
+
+    /* Ripple on click */
+    .cell::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center, rgba(0,245,255,0.15) 0%, transparent 70%);
+      opacity: 0;
+      transform: scale(0.3);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      pointer-events: none;
+    }
+    .cell.ripple::after {
+      opacity: 1;
+      transform: scale(1);
+      animation: rippleFade 0.5s ease forwards;
+    }
+    @keyframes rippleFade {
+      0%   { opacity: 1; transform: scale(0.3); }
+      100% { opacity: 0; transform: scale(1); }
+    }
+
+    /* ─── X marker ──────────────────────────────────────────── */
+    .marker {
+      position: relative;
+      width: 50%;
+      height: 50%;
+    }
+
+    .marker.x::before,
+    .marker.x::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      margin: auto;
+      width: 100%;
+      height: 3px;
+      background: var(--glow-x);
+      box-shadow: var(--shadow-x);
+      border-radius: 2px;
+      transform-origin: center;
+    }
+    .marker.x::before {
+      transform: rotate(45deg) scaleX(0);
+      animation: drawLine 0.22s ease forwards;
+    }
+    .marker.x::after {
+      transform: rotate(-45deg) scaleX(0);
+      animation: drawLine 0.22s 0.08s ease forwards;
+    }
+
+    /* ─── O marker ──────────────────────────────────────────── */
+    .marker.o {
+      border-radius: 50%;
+      border: 3px solid var(--glow-o);
+      box-shadow: var(--shadow-o), inset 0 0 12px rgba(255,45,120,0.15);
+      transform: scale(0);
+      animation: popIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    @keyframes drawLine {
+      to { transform: rotate(var(--r, 45deg)) scaleX(1); }
+    }
+    .marker.x::before { --r: 45deg; }
+    .marker.x::after  { --r: -45deg; }
+
+    @keyframes popIn {
+      0%   { transform: scale(0) rotate(-30deg); opacity: 0; }
+      100% { transform: scale(1) rotate(0deg);   opacity: 1; }
+    }
+
+    /* ─── Win highlight ─────────────────────────────────────── */
+    .cell.win-cell .marker {
+      filter: brightness(1.4);
+    }
+    .cell.win-cell {
+      background: rgba(255,224,102,0.06);
+      animation: winFlare 0.5s ease forwards;
+    }
+    @keyframes winFlare {
+      0%   { background: rgba(255,224,102,0.2); }
+      100% { background: rgba(255,224,102,0.06); }
+    }
+
+    /* ─── Win line overlay ──────────────────────────────────── */
+    .win-line {
+      position: absolute;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .win-line line {
+      stroke: var(--accent);
+      stroke-width: 3;
+      stroke-linecap: round;
+      filter: drop-shadow(0 0 6px var(--accent)) drop-shadow(0 0 16px var(--accent));
+      stroke-dasharray: 400;
+      stroke-dashoffset: 400;
+      animation: drawWinLine 0.5s 0.1s ease forwards;
+    }
+
+    @keyframes drawWinLine {
+      to { stroke-dashoffset: 0; }
+    }
+
+    /* ─── Reset button ──────────────────────────────────────── */
+    .reset-wrap {
+      animation: fadeUp 0.6s 0.3s ease both;
+    }
+
+    .reset-btn {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      background: transparent;
+      border: 1px solid var(--text-dim);
+      padding: 0.65rem 2rem;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .reset-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, var(--glow-x), var(--glow-o));
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+
+    .reset-btn:hover {
+      color: var(--bg);
+      border-color: transparent;
+      box-shadow: 0 0 20px rgba(0,245,255,0.4), 0 0 40px rgba(255,45,120,0.2);
+    }
+    .reset-btn:hover::before { opacity: 1; }
+
+    .reset-btn span {
+      position: relative;
+      z-index: 1;
+    }
+
+    .reset-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* ─── Entrance animations ───────────────────────────────── */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── Turn indicator cursor ─────────────────────────────── */
+    .board[data-turn="X"] .cell:not(.taken):not(.game-over) {
+      cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cline x1='4' y1='4' x2='20' y2='20' stroke='%2300f5ff' stroke-width='2.5' stroke-linecap='round'/%3E%3Cline x1='20' y1='4' x2='4' y2='20' stroke='%2300f5ff' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E") 12 12, crosshair;
+    }
+    .board[data-turn="O"] .cell:not(.taken):not(.game-over) {
+      cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='8' stroke='%23ff2d78' stroke-width='2.5' fill='none'/%3E%3C/svg%3E") 12 12, crosshair;
+    }
+
+    /* ─── Mobile tweaks ─────────────────────────────────────── */
+    @media (max-height: 600px) {
+      .app { gap: 1.2rem; }
+      .title { font-size: 1.4rem; }
+      .subtitle { display: none; }
+    }
+    @media (max-width: 340px) {
+      .scoreboard { gap: 1.2rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+
+    <header class="header">
+      <h1 class="title">TIC·<span>TAC</span>·TOE</h1>
+      <p class="subtitle">Two player · Vanilla JS</p>
+    </header>
+
+    <div class="scoreboard" id="scoreboard">
+      <div class="score-block x" id="score-x">
+        <div class="label">Player X</div>
+        <div class="value" id="val-x">0</div>
+      </div>
+      <div class="score-divider"></div>
+      <div class="score-block draws" id="score-d">
+        <div class="label">Draws</div>
+        <div class="value" id="val-d">0</div>
+      </div>
+      <div class="score-divider"></div>
+      <div class="score-block o" id="score-o">
+        <div class="label">Player O</div>
+        <div class="value" id="val-o">0</div>
+      </div>
+    </div>
+
+    <div class="status-wrap">
+      <div class="status x" id="status">Player X — Your Turn</div>
+    </div>
+
+    <div class="board-wrap">
+      <div class="board" id="board" data-turn="X">
+        <div class="cell" data-index="0"></div>
+        <div class="cell" data-index="1"></div>
+        <div class="cell" data-index="2"></div>
+        <div class="cell" data-index="3"></div>
+        <div class="cell" data-index="4"></div>
+        <div class="cell" data-index="5"></div>
+        <div class="cell" data-index="6"></div>
+        <div class="cell" data-index="7"></div>
+        <div class="cell" data-index="8"></div>
+      </div>
+      <!-- SVG win line injected by JS -->
+    </div>
+
+    <div class="reset-wrap">
+      <button class="reset-btn" id="reset-btn">
+        <span>⟳&nbsp; New Game</span>
+      </button>
+    </div>
+
+  </div>
+
+  <script>
+    // ─── State ────────────────────────────────────────────────
+    const WINS = [
+      [0,1,2],[3,4,5],[6,7,8], // rows
+      [0,3,6],[1,4,7],[2,5,8], // cols
+      [0,4,8],[2,4,6]          // diagonals
+    ];
+
+    let board        = Array(9).fill(null);
+    let currentPlayer = 'X';
+    let gameOver     = false;
+    let scores       = { X: 0, O: 0, D: 0 };
+
+    // ─── DOM refs ─────────────────────────────────────────────
+    const boardEl   = document.getElementById('board');
+    const statusEl  = document.getElementById('status');
+    const cells     = Array.from(boardEl.querySelectorAll('.cell'));
+    const resetBtn  = document.getElementById('reset-btn');
+    const valX      = document.getElementById('val-x');
+    const valO      = document.getElementById('val-o');
+    const valD      = document.getElementById('val-d');
+    const scoreX    = document.getElementById('score-x');
+    const scoreO    = document.getElementById('score-o');
+    const scoreD    = document.getElementById('score-d');
+
+    // ─── Event listeners ──────────────────────────────────────
+    cells.forEach(cell => {
+      cell.addEventListener('click', () => handleClick(parseInt(cell.dataset.index)));
+    });
+
+    resetBtn.addEventListener('click', resetGame);
+
+    // ─── Core functions ───────────────────────────────────────
+    function handleClick(index) {
+      if (gameOver || board[index]) return;
+
+      board[index] = currentPlayer;
+      renderCell(index, currentPlayer);
+
+      // Ripple effect
+      const cell = cells[index];
+      cell.classList.add('ripple');
+      cell.addEventListener('animationend', () => cell.classList.remove('ripple'), { once: true });
+
+      const winner = checkWinner();
+      if (winner) {
+        endGame(winner);
+      } else if (checkDraw()) {
+        endGame(null);
+      } else {
+        switchPlayer();
+      }
+    }
+
+    function renderCell(index, player) {
+      const cell = cells[index];
+      const marker = document.createElement('div');
+      marker.className = `marker ${player.toLowerCase()}`;
+      cell.appendChild(marker);
+      cell.classList.add('taken');
+    }
+
+    function checkWinner() {
+      for (const combo of WINS) {
+        const [a, b, c] = combo;
+        if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+          return { player: board[a], combo };
+        }
+      }
+      return null;
+    }
+
+    function checkDraw() {
+      return board.every(cell => cell !== null);
+    }
+
+    function switchPlayer() {
+      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+      boardEl.dataset.turn = currentPlayer;
+      updateStatus();
+    }
+
+    function updateStatus() {
+      statusEl.className = `status ${currentPlayer.toLowerCase()}`;
+      statusEl.textContent = `Player ${currentPlayer} — Your Turn`;
+    }
+
+    function endGame(result) {
+      gameOver = true;
+      cells.forEach(c => c.classList.add('game-over'));
+
+      if (result) {
+        // Highlight winning cells
+        result.combo.forEach(i => cells[i].classList.add('win-cell'));
+        drawWinLine(result.combo);
+
+        scores[result.player]++;
+        updateScores(result.player);
+
+        statusEl.className = 'status win';
+        statusEl.textContent = `Player ${result.player} Wins!`;
+      } else {
+        scores.D++;
+        updateScores('D');
+
+        statusEl.className = 'status draw';
+        statusEl.textContent = 'Draw — No Winner';
+      }
+    }
+
+    function drawWinLine(combo) {
+      const boardRect = boardEl.getBoundingClientRect();
+      const wrapRect  = document.querySelector('.board-wrap').getBoundingClientRect();
+
+      const offsetX = boardRect.left - wrapRect.left;
+      const offsetY = boardRect.top  - wrapRect.top;
+
+      const getCenter = (idx) => {
+        const r = cells[idx].getBoundingClientRect();
+        return {
+          x: r.left - boardRect.left + r.width  / 2,
+          y: r.top  - boardRect.top  + r.height / 2
+        };
+      };
+
+      const start = getCenter(combo[0]);
+      const end   = getCenter(combo[2]);
+
+      const svgNS = 'http://www.w3.org/2000/svg';
+      const svg   = document.createElementNS(svgNS, 'svg');
+      svg.setAttribute('class', 'win-line');
+      svg.style.cssText = `left:${offsetX}px;top:${offsetY}px;width:${boardRect.width}px;height:${boardRect.height}px;`;
+
+      const line = document.createElementNS(svgNS, 'line');
+      line.setAttribute('x1', start.x);
+      line.setAttribute('y1', start.y);
+      line.setAttribute('x2', end.x);
+      line.setAttribute('y2', end.y);
+      svg.appendChild(line);
+
+      document.querySelector('.board-wrap').appendChild(svg);
+    }
+
+    function updateScores(who) {
+      const map = { X: [valX, scoreX], O: [valO, scoreO], D: [valD, scoreD] };
+      const [valEl, blockEl] = map[who];
+      valEl.textContent = scores[who];
+      blockEl.classList.remove('bump');
+      void blockEl.offsetWidth; // reflow to re-trigger animation
+      blockEl.classList.add('bump');
+    }
+
+    function resetGame() {
+      board         = Array(9).fill(null);
+      currentPlayer = 'X';
+      gameOver      = false;
+
+      // Clear cells
+      cells.forEach(cell => {
+        cell.innerHTML = '';
+        cell.className = 'cell';
+      });
+
+      // Remove win line
+      const old = document.querySelector('.win-line');
+      if (old) old.remove();
+
+      boardEl.dataset.turn = 'X';
+      updateStatus();
+    }
+  </script>
+</body>
+</html>
