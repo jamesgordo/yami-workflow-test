@@ -416,6 +416,210 @@
       cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='8' stroke='%23ff2d78' stroke-width='2.5' fill='none'/%3E%3C/svg%3E") 12 12, crosshair;
     }
 
+    /* ─── Navigation ────────────────────────────────────────── */
+    .nav {
+      display: flex;
+      gap: 0.5rem;
+      animation: fadeDown 0.6s 0.05s ease both;
+    }
+
+    .nav-btn {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      background: transparent;
+      border: 1px solid var(--text-dim);
+      padding: 0.45rem 1.2rem;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .nav-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, var(--glow-x), var(--glow-o));
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+
+    .nav-btn span { position: relative; z-index: 1; }
+
+    .nav-btn.active {
+      color: var(--bg);
+      border-color: transparent;
+      box-shadow: 0 0 20px rgba(0,245,255,0.4), 0 0 40px rgba(255,45,120,0.2);
+    }
+    .nav-btn.active::before { opacity: 1; }
+
+    .nav-btn:hover:not(.active) {
+      color: var(--glow-x);
+      border-color: var(--glow-x);
+      box-shadow: 0 0 10px rgba(0,245,255,0.2);
+    }
+
+    .nav-btn:active { transform: scale(0.97); }
+
+    /* ─── View containers ───────────────────────────────────── */
+    .view { display: none; width: 100%; }
+    .view.active { display: contents; }
+
+    /* ─── Stopwatch display ─────────────────────────────────── */
+    .stopwatch-view-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2rem;
+      width: 100%;
+    }
+
+    .stopwatch-display {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: clamp(2.4rem, 10vw, 5rem);
+      letter-spacing: 0.08em;
+      color: var(--glow-x);
+      text-shadow: var(--shadow-x);
+      line-height: 1;
+      transition: text-shadow 0.3s ease, color 0.3s ease;
+      position: relative;
+    }
+
+    .stopwatch-display.running {
+      animation: swPulse 1.2s ease infinite;
+    }
+
+    @keyframes swPulse {
+      0%, 100% { text-shadow: var(--shadow-x); }
+      50% {
+        text-shadow: 0 0 12px #00f5ff, 0 0 40px #00f5ffcc, 0 0 90px #00f5ff66;
+      }
+    }
+
+    /* Corner decoration around display */
+    .display-wrap {
+      position: relative;
+      padding: 1.5rem 2rem;
+    }
+
+    .display-wrap::before,
+    .display-wrap::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-color: var(--glow-x);
+      border-style: solid;
+      opacity: 0.6;
+    }
+    .display-wrap::before { top: 0; left: 0; border-width: 2px 0 0 2px; }
+    .display-wrap::after  { bottom: 0; right: 0; border-width: 0 2px 2px 0; }
+
+    /* ─── Stopwatch controls ────────────────────────────────── */
+    .sw-controls {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .sw-btn {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      background: transparent;
+      border: 1px solid var(--text-dim);
+      padding: 0.65rem 2rem;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .sw-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+
+    .sw-btn span { position: relative; z-index: 1; }
+
+    .sw-btn.start::before { background: linear-gradient(90deg, #00f5ff, #00b8cc); }
+    .sw-btn.stop::before  { background: linear-gradient(90deg, #ff2d78, #cc1f5a); }
+    .sw-btn.reset::before { background: linear-gradient(90deg, var(--glow-x), var(--glow-o)); }
+    .sw-btn.lap::before   { background: linear-gradient(90deg, var(--accent), #cc9900); }
+
+    .sw-btn.start:hover, .sw-btn.stop:hover, .sw-btn.reset:hover, .sw-btn.lap:hover {
+      color: var(--bg);
+      border-color: transparent;
+    }
+    .sw-btn.start:hover { box-shadow: 0 0 20px rgba(0,245,255,0.5); }
+    .sw-btn.stop:hover  { box-shadow: 0 0 20px rgba(255,45,120,0.5); }
+    .sw-btn.reset:hover { box-shadow: 0 0 20px rgba(0,245,255,0.3); }
+    .sw-btn.lap:hover   { box-shadow: 0 0 20px rgba(255,224,102,0.4); }
+
+    .sw-btn:hover::before { opacity: 1; }
+    .sw-btn:active { transform: scale(0.97); }
+
+    /* ─── Lap list ──────────────────────────────────────────── */
+    .lap-section {
+      width: 100%;
+      max-width: 380px;
+      max-height: 200px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      scrollbar-width: thin;
+      scrollbar-color: var(--text-dim) transparent;
+    }
+
+    .lap-section:empty::before {
+      content: 'No laps recorded';
+      color: var(--text-dim);
+      font-size: 0.6rem;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 0.5rem;
+    }
+
+    .lap-entry {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.4rem 0.8rem;
+      border: 1px solid var(--grid-line);
+      font-size: 0.75rem;
+      animation: fadeDown 0.2s ease both;
+    }
+
+    .lap-entry .lap-num {
+      color: var(--text-dim);
+      font-size: 0.6rem;
+      letter-spacing: 0.3em;
+    }
+
+    .lap-entry .lap-time {
+      font-family: 'Orbitron', sans-serif;
+      color: var(--glow-x);
+      font-size: 0.85rem;
+    }
+
+    .lap-entry .lap-delta {
+      color: var(--text-dim);
+      font-size: 0.65rem;
+    }
+
     /* ─── Mobile tweaks ─────────────────────────────────────── */
     @media (max-height: 600px) {
       .app { gap: 1.2rem; }
@@ -607,6 +811,18 @@
       <p class="subtitle">Two player · Vanilla JS</p>
     </header>
 
+    <nav class="nav">
+      <button class="nav-btn active" id="nav-game" onclick="switchView('game')">
+        <span>Game</span>
+      </button>
+      <button class="nav-btn" id="nav-stopwatch" onclick="switchView('stopwatch')">
+        <span>Stopwatch</span>
+      </button>
+    </nav>
+
+    <!-- ── Game View ──────────────────────────────────────────── -->
+    <div class="view active" id="view-game">
+
     <div class="scoreboard" id="scoreboard">
       <div class="score-block x" id="score-x">
         <div class="label">Player X</div>
@@ -648,6 +864,33 @@
         <span>⟳&nbsp; New Game</span>
       </button>
     </div>
+
+    </div><!-- /view-game -->
+
+    <!-- ── Stopwatch View ─────────────────────────────────────── -->
+    <div class="view" id="view-stopwatch">
+      <div class="stopwatch-view-inner">
+
+        <div class="display-wrap">
+          <div class="stopwatch-display" id="sw-display">00:00:00.00</div>
+        </div>
+
+        <div class="sw-controls">
+          <button class="sw-btn start" id="sw-toggle" onclick="swToggle()">
+            <span id="sw-toggle-label">Start</span>
+          </button>
+          <button class="sw-btn lap" id="sw-lap" onclick="swLap()" disabled>
+            <span>Lap</span>
+          </button>
+          <button class="sw-btn reset" id="sw-reset" onclick="swReset()">
+            <span>Reset</span>
+          </button>
+        </div>
+
+        <div class="lap-section" id="lap-section"></div>
+
+      </div>
+    </div><!-- /view-stopwatch -->
 
   </div>
 
@@ -883,6 +1126,105 @@
 
       boardEl.dataset.turn = 'X';
       updateStatus();
+    }
+
+    // ─── View switching ───────────────────────────────────────
+    function switchView(viewName) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('view-' + viewName).classList.add('active');
+      document.getElementById('nav-' + viewName).classList.add('active');
+    }
+
+    // ─── Stopwatch state ──────────────────────────────────────
+    const sw = {
+      isRunning:   false,
+      elapsedMs:   0,
+      startTime:   0,
+      rafId:       null,
+      laps:        []
+    };
+
+    const swDisplay    = document.getElementById('sw-display');
+    const swToggleBtn  = document.getElementById('sw-toggle');
+    const swToggleLbl  = document.getElementById('sw-toggle-label');
+    const swLapBtn     = document.getElementById('sw-lap');
+    const lapSection   = document.getElementById('lap-section');
+
+    function padZ(n, len) {
+      return String(Math.floor(n)).padStart(len, '0');
+    }
+
+    function formatTime(ms) {
+      const centisecs = Math.floor(ms / 10) % 100;
+      const secs      = Math.floor(ms / 1000) % 60;
+      const mins      = Math.floor(ms / 60000) % 60;
+      const hrs       = Math.floor(ms / 3600000);
+      return `${padZ(hrs,2)}:${padZ(mins,2)}:${padZ(secs,2)}.${padZ(centisecs,2)}`;
+    }
+
+    function swUpdate() {
+      const now = performance.now();
+      const total = sw.elapsedMs + (now - sw.startTime);
+      swDisplay.textContent = formatTime(total);
+      sw.rafId = requestAnimationFrame(swUpdate);
+    }
+
+    function swToggle() {
+      if (sw.isRunning) {
+        // Stop
+        cancelAnimationFrame(sw.rafId);
+        sw.elapsedMs += performance.now() - sw.startTime;
+        sw.isRunning = false;
+        swDisplay.classList.remove('running');
+        swToggleLbl.textContent = 'Start';
+        swToggleBtn.classList.replace('stop', 'start');
+        swLapBtn.disabled = true;
+      } else {
+        // Start
+        sw.startTime = performance.now();
+        sw.isRunning = true;
+        swDisplay.classList.add('running');
+        swToggleLbl.textContent = 'Stop';
+        swToggleBtn.classList.replace('start', 'stop');
+        swLapBtn.disabled = false;
+        sw.rafId = requestAnimationFrame(swUpdate);
+      }
+    }
+
+    function swLap() {
+      if (!sw.isRunning) return;
+      const now = performance.now();
+      const total = sw.elapsedMs + (now - sw.startTime);
+      const prev  = sw.laps.length ? sw.laps[sw.laps.length - 1].total : 0;
+      const delta = total - prev;
+      sw.laps.push({ total, delta });
+
+      const entry = document.createElement('div');
+      entry.className = 'lap-entry';
+      entry.innerHTML = `
+        <span class="lap-num">LAP ${padZ(sw.laps.length, 2)}</span>
+        <span class="lap-time">${formatTime(total)}</span>
+        <span class="lap-delta">+${formatTime(delta)}</span>
+      `;
+      lapSection.prepend(entry);
+    }
+
+    function swReset() {
+      if (sw.isRunning) {
+        cancelAnimationFrame(sw.rafId);
+        sw.isRunning = false;
+      }
+      sw.elapsedMs = 0;
+      sw.startTime = 0;
+      sw.laps      = [];
+      swDisplay.textContent = '00:00:00.00';
+      swDisplay.classList.remove('running');
+      swToggleLbl.textContent = 'Start';
+      swToggleBtn.classList.remove('stop');
+      swToggleBtn.classList.add('start');
+      swLapBtn.disabled = true;
+      lapSection.innerHTML = '';
     }
   </script>
 </body>
